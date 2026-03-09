@@ -1,38 +1,35 @@
-import fastify from 'fastify';
+function authRoutes(app) { // Route d'inscription
+  app.post('/auth/register', async (request, reply) => {
+    const { email, password } = request.body
 
-const app = fastify();
+    // Validation basique
+    if (!email || !password) {
+      return reply.status(400).send({ error: 'Email et password requis' })
+    }
 
-// Route d'inscription
-app.post('/auth/register', async (request, reply) => {
-  const { email, password } = request.body;
+    // TODO: Implémenter la logique d'inscription
+    // - Valider l'email
+    // - Hasher le password
+    // - Sauvegarder en base de données
 
-  // Validation basique
-  if (!email || !password) {
-    return reply.status(400).send({ error: 'Email et password requis' });
-  }
+    return reply.status(201).send({ message: 'Utilisateur créé', email })
+  })
 
-  // TODO: Implémenter la logique d'inscription
-  // - Valider l'email
-  // - Hasher le password
-  // - Sauvegarder en base de données
+  // Route de connexion
+  app.post('/auth/login', async (request, reply) => {
+    const { email, password } = request.body
 
-  return reply.status(201).send({ message: 'Utilisateur créé', email });
-});
+    if (!email || !password) {
+      return reply.status(400).send({ error: 'Email et password requis' })
+    }
 
-// Route de connexion
-app.post('/auth/login', async (request, reply) => {
-  const { email, password } = request.body;
+    // TODO: Implémenter la logique de login
+    // - Vérifier l'existence de l'utilisateur
+    // - Vérifier le password
+    // - Générer un JWT token
 
-  if (!email || !password) {
-    return reply.status(400).send({ error: 'Email et password requis' });
-  }
+    return reply.send({ message: 'Authentification réussie', token: 'TODO' })
+  })
+}
 
-  // TODO: Implémenter la logique de login
-  // - Vérifier l'existence de l'utilisateur
-  // - Vérifier le password
-  // - Générer un JWT token
-
-  return reply.send({ message: 'Authentification réussie', token: 'TODO' });
-});
-
-export default app;
+export default authRoutes

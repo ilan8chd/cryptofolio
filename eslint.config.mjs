@@ -8,3 +8,12 @@ export default antfu({
     'style/brace-style': ['error', '1tbs'],
   },
 })
+
+antfu({
+  vue: true,
+  unocss: true,
+}, {
+  rules: {
+    'style/brace-style': ['error', '1tbs'],
+  },
+})

@@ -1,5 +1,6 @@
 {
   "name": "webdev-esilv-starter",
+  "type": "commonjs",
   "version": "1.0.0",
   "private": true,
   "packageManager": "npm@11.7.0",
@@ -8,14 +9,13 @@
     "server"
   ],
   "description": "",
+  "author": "",
+  "license": "ISC",
+  "keywords": [],
   "scripts": {
     "dev": "turbo run dev --parallel",
     "lint": "turbo run lint --parallel"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "turbo": "^2.8.14"
   },
