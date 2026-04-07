@@ -13,7 +13,7 @@ import usersRoutes from './users/users-routes.js'
 async function buildApp() {
   const fastify = Fastify({
     logger: envToLogger[config.env] ?? true,
-    pluginTimeout: 30000,
+    pluginTimeout: 60000,
   })
 
   await fastify.register(cors, {
