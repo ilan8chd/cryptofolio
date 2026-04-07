@@ -3,7 +3,7 @@ import process from 'node:process'
 export default {
   port: process.env.PORT || 3000,
   env: process.env.NODE_ENV || 'development',
-  mongoUri: process.env.MONGODB_URI || 'mongodb://localhost:35115/myapp',
+  mongoUri: process.env.MONGODB_URI || 'mongodb://root:password@localhost:35115/myapp?authSource=admin',
   appBaseUrl: process.env.APP_BASE_URL || `http://localhost:${process.env.PORT || 3000}`,
   jwt: {
     secret: process.env.JWT_SECRET || 'change-me-in-production',

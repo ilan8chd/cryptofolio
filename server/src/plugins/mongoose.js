@@ -1,3 +1,4 @@
+import fp from 'fastify-plugin'
 import mongoose from 'mongoose'
 
 import config from '../config.js'
@@ -16,4 +17,4 @@ async function mongoosePlugin(fastify) {
   })
 }
 
-export default mongoosePlugin
+export default fp(mongoosePlugin)

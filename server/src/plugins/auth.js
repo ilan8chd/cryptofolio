@@ -3,7 +3,7 @@ import fastifyJwt from '@fastify/jwt'
 import fp from 'fastify-plugin'
 
 import config from '../config.js'
-// import User from '../users/user-schema.js'
+import User from '../users/user-schema.js'
 
 /**
  *
@@ -28,15 +28,15 @@ async function authPlugin(app) {
       return reply.status(401).send({ error: 'Authentification requise' })
     }
 
-    // const user = await User.findById(request.user.sub)
-    //   .select('_id email username emailVerified createdAt updatedAt')
-    //   .lean()
+    const user = await User.findById(request.user.sub)
+      .select('_id email username emailVerified createdAt updatedAt')
+      .lean()
 
-    // if (!user) {
-    //   return reply.status(401).send({ error: 'Utilisateur introuvable' })
-    // }
+    if (!user) {
+      return reply.status(401).send({ error: 'Utilisateur introuvable' })
+    }
 
-    // request.currentUser = { }
+    request.currentUser = user
   })
 }
 

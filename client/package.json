@@ -15,6 +15,7 @@
     "format": "oxfmt src/"
   },
   "dependencies": {
+    "chart.js": "^4.5.1",
     "pinia": "^3.0.4",
     "vue": "beta",
     "vue-router": "^5.0.3"
