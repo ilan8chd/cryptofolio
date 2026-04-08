@@ -1,4 +1,4 @@
-const COINGECKO_URL = 'https://api.coingecko.com/api/v3'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 const SYMBOL_TO_ID = {
   BTC: 'bitcoin',
@@ -21,9 +21,8 @@ function getCoinId(symbol) {
 
 export async function fetchPrices(symbols = []) {
   const ids = symbols.map(getCoinId).join(',')
-  const url = `${COINGECKO_URL}/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`
-  const res = await fetch(url)
-  if (!res.ok) throw new Error('Erreur API CoinGecko')
+  const res = await fetch(`${API_URL}/market/prices?ids=${ids}`)
+  if (!res.ok) throw new Error('Erreur API')
   const data = await res.json()
 
   const prices = {}
@@ -41,26 +40,23 @@ export async function fetchPrices(symbols = []) {
 }
 
 export async function fetchMarketData() {
-  const url = `${COINGECKO_URL}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=true&price_change_percentage=24h,7d`
-  const res = await fetch(url)
-  if (!res.ok) throw new Error('Erreur API CoinGecko')
+  const res = await fetch(`${API_URL}/market/coins`)
+  if (!res.ok) throw new Error('Erreur API')
   return res.json()
 }
 
 export async function fetchCoinHistory(symbol, days = 30) {
   const id = getCoinId(symbol)
-  const url = `${COINGECKO_URL}/coins/${id}/market_chart?vs_currency=usd&days=${days}`
-  const res = await fetch(url)
-  if (!res.ok) throw new Error('Erreur API CoinGecko')
+  const res = await fetch(`${API_URL}/market/history?id=${id}&days=${days}`)
+  if (!res.ok) throw new Error('Erreur API')
   const data = await res.json()
   return data.prices.map(([timestamp, price]) => ({ timestamp, price }))
 }
 
 export async function searchCoins(query) {
   if (!query || query.length < 2) return []
-  const url = `${COINGECKO_URL}/search?query=${encodeURIComponent(query)}`
-  const res = await fetch(url)
-  if (!res.ok) throw new Error('Erreur recherche CoinGecko')
+  const res = await fetch(`${API_URL}/market/search?query=${encodeURIComponent(query)}`)
+  if (!res.ok) throw new Error('Erreur recherche')
   const data = await res.json()
   return data.coins.slice(0, 10).map(coin => ({
     id: coin.id,
@@ -72,8 +68,7 @@ export async function searchCoins(query) {
 }
 
 export async function getCoinPrice(coinId) {
-  const url = `${COINGECKO_URL}/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true`
-  const res = await fetch(url)
+  const res = await fetch(`${API_URL}/market/prices?ids=${coinId}`)
   if (!res.ok) return null
   const data = await res.json()
   if (!data[coinId]) return null
@@ -81,18 +76,16 @@ export async function getCoinPrice(coinId) {
 }
 
 export async function fetchCoinHistoryById(coinId, days = 30) {
-  const url = `${COINGECKO_URL}/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`
-  const res = await fetch(url)
-  if (!res.ok) throw new Error('Erreur API CoinGecko')
+  const res = await fetch(`${API_URL}/market/history?id=${coinId}&days=${days}`)
+  if (!res.ok) throw new Error('Erreur API')
   const data = await res.json()
   return data.prices.map(([timestamp, price]) => ({ timestamp, price }))
 }
 
 export async function fetchPricesByIds(coinIds = []) {
   const ids = coinIds.join(',')
-  const url = `${COINGECKO_URL}/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`
-  const res = await fetch(url)
-  if (!res.ok) throw new Error('Erreur API CoinGecko')
+  const res = await fetch(`${API_URL}/market/prices?ids=${ids}`)
+  if (!res.ok) throw new Error('Erreur API')
   const data = await res.json()
 
   const prices = {}

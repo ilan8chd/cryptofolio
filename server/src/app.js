@@ -3,6 +3,7 @@ import cors from '@fastify/cors'
 
 import config from './config.js'
 import assetsRoutes from './crypto/assets-routes.js'
+import marketRoutes from './crypto/market-routes.js'
 import envToLogger from './logger.js'
 import authPlugin from './plugins/auth.js'
 import mongoosePlugin from './plugins/mongoose.js'
@@ -26,6 +27,7 @@ async function buildApp() {
   fastify.register(authRoutes, { prefix: '/auth' })
   fastify.register(usersRoutes, { prefix: '/users' })
   fastify.register(assetsRoutes, { prefix: '/assets' })
+  fastify.register(marketRoutes, { prefix: '/market' })
   fastify.register(rootRoutes)
 
   return fastify
