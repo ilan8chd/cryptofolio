@@ -61,7 +61,7 @@ onUnmounted(() => {
             <th class="right">24h</th>
             <th class="right hide-mobile">7j</th>
             <th class="right hide-mobile">Market Cap</th>
-            <th class="sparkline-col hide-mobile">7j Chart</th>
+            <th v-if="coins[0]?.sparkline_in_7d?.price" class="sparkline-col hide-mobile">7j Chart</th>
           </tr>
         </thead>
         <tbody>
@@ -80,13 +80,13 @@ onUnmounted(() => {
               {{ coin.price_change_percentage_7d_in_currency >= 0 ? '+' : '' }}{{ coin.price_change_percentage_7d_in_currency?.toFixed(2) }}%
             </td>
             <td class="right mono hide-mobile">{{ formatMarketCap(coin.market_cap) }}</td>
-            <td class="sparkline-col hide-mobile">
+            <td v-if="coin.sparkline_in_7d?.price" class="sparkline-col hide-mobile">
               <svg viewBox="0 0 100 30" class="sparkline" :class="coin.price_change_percentage_7d_in_currency >= 0 ? 'spark-green' : 'spark-red'">
                 <polyline
                   fill="none"
                   stroke-width="1.5"
-                  :points="coin.sparkline_in_7d?.price
-                    ?.filter((_, i) => i % 4 === 0)
+                  :points="coin.sparkline_in_7d.price
+                    .filter((_, i) => i % 4 === 0)
                     .map((p, i, arr) => {
                       const min = Math.min(...arr)
                       const max = Math.max(...arr)
