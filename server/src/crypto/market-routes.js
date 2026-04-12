@@ -1,5 +1,5 @@
 const PAPRIKA_URL = 'https://api.coinpaprika.com/v1'
-const COINGECKO_URL = 'https://api.coingecko.com/api/v3'
+const CRYPTOCOMPARE_URL = 'https://min-api.cryptocompare.com/data'
 
 const HEADERS = {
   'Accept': 'application/json',
@@ -27,51 +27,80 @@ async function cachedFetch(key, url, ttl = CACHE_TTL) {
   return data
 }
 
+// Map coin IDs to symbols for CryptoCompare
+const ID_TO_SYMBOL = {
+  bitcoin: 'BTC', ethereum: 'ETH', solana: 'SOL', cardano: 'ADA',
+  ripple: 'XRP', polkadot: 'DOT', 'avalanche-2': 'AVAX', chainlink: 'LINK',
+  dogecoin: 'DOGE', 'matic-network': 'MATIC', binancecoin: 'BNB', cosmos: 'ATOM',
+  hyperliquid: 'HYPE',
+}
+
 // Map CoinGecko IDs to CoinPaprika IDs
 const GECKO_TO_PAPRIKA = {
-  bitcoin: 'btc-bitcoin',
-  ethereum: 'eth-ethereum',
-  solana: 'sol-solana',
-  cardano: 'ada-cardano',
-  ripple: 'xrp-xrp',
-  polkadot: 'dot-polkadot',
-  'avalanche-2': 'avax-avalanche',
-  chainlink: 'link-chainlink',
-  dogecoin: 'doge-dogecoin',
-  'matic-network': 'matic-polygon',
-  binancecoin: 'bnb-binance-coin',
-  cosmos: 'atom-cosmos',
-  hyperliquid: 'hype-hyperliquid',
+  bitcoin: 'btc-bitcoin', ethereum: 'eth-ethereum', solana: 'sol-solana',
+  cardano: 'ada-cardano', ripple: 'xrp-xrp', polkadot: 'dot-polkadot',
+  'avalanche-2': 'avax-avalanche', chainlink: 'link-chainlink',
+  dogecoin: 'doge-dogecoin', 'matic-network': 'matic-polygon',
+  binancecoin: 'bnb-binance-coin', cosmos: 'atom-cosmos', hyperliquid: 'hype-hyperliquid',
 }
 
 function geckoToPaprikaId(geckoId) {
   return GECKO_TO_PAPRIKA[geckoId] || geckoId
 }
 
+function idToSymbol(id) {
+  if (ID_TO_SYMBOL[id]) return ID_TO_SYMBOL[id]
+  // CoinPaprika IDs like "btc-bitcoin" -> extract symbol
+  const parts = id.split('-')
+  return parts[0].toUpperCase()
+}
+
 /**
  * @param {import('fastify').FastifyInstance} app
  */
 function marketRoutes(app) {
-  // GET /market/prices?ids=bitcoin,ethereum (uses CoinGecko IDs)
+  // GET /market/prices?ids=bitcoin,ethereum
   app.get('/prices', async (request, reply) => {
     const { ids } = request.query
     if (!ids) return reply.status(400).send({ error: 'ids requis' })
 
-    const geckoIds = ids.split(',')
-    const result = {}
+    const idList = ids.split(',').map(s => s.trim())
+    const symbols = idList.map(idToSymbol).join(',')
 
-    for (const geckoId of geckoIds) {
-      const paprikaId = geckoToPaprikaId(geckoId.trim())
-      const data = await cachedFetch(`ticker:${paprikaId}`, `${PAPRIKA_URL}/tickers/${paprikaId}`)
-      if (data && data.quotes?.USD) {
-        result[geckoId.trim()] = {
-          usd: data.quotes.USD.price,
-          usd_24h_change: data.quotes.USD.percent_change_24h,
-          usd_market_cap: data.quotes.USD.market_cap,
+    const data = await cachedFetch(
+      `prices:${symbols}`,
+      `${CRYPTOCOMPARE_URL}/pricemultifull?fsyms=${symbols}&tsyms=USD`,
+    )
+
+    if (!data?.RAW) {
+      // Fallback to CoinPaprika
+      const result = {}
+      for (const geckoId of idList) {
+        const paprikaId = geckoToPaprikaId(geckoId)
+        const tickerData = await cachedFetch(`ticker:${paprikaId}`, `${PAPRIKA_URL}/tickers/${paprikaId}`)
+        if (tickerData?.quotes?.USD) {
+          result[geckoId] = {
+            usd: tickerData.quotes.USD.price,
+            usd_24h_change: tickerData.quotes.USD.percent_change_24h,
+            usd_market_cap: tickerData.quotes.USD.market_cap,
+          }
+        }
+      }
+      return reply.send(result)
+    }
+
+    const result = {}
+    for (const geckoId of idList) {
+      const sym = idToSymbol(geckoId)
+      if (data.RAW[sym]?.USD) {
+        const d = data.RAW[sym].USD
+        result[geckoId] = {
+          usd: d.PRICE,
+          usd_24h_change: d.CHANGEPCT24HOUR,
+          usd_market_cap: d.MKTCAP,
         }
       }
     }
-
     return reply.send(result)
   })
 
@@ -87,14 +116,7 @@ function marketRoutes(app) {
     const results = data
       .filter(c => c.is_active && (c.name.toLowerCase().includes(q) || c.symbol.toLowerCase().includes(q)))
       .slice(0, 10)
-      .map(c => ({
-        id: c.id,
-        name: c.name,
-        symbol: c.symbol,
-        rank: c.rank,
-      }))
 
-    // Return in CoinGecko search format for compatibility
     return reply.send({ coins: results.map(c => ({
       id: c.id,
       name: c.name,
@@ -109,7 +131,7 @@ function marketRoutes(app) {
     const data = await cachedFetch('tickers', `${PAPRIKA_URL}/tickers?limit=20`)
     if (!data) return reply.status(502).send({ error: 'Erreur API' })
 
-    const coins = data.map((c, i) => ({
+    const coins = data.map(c => ({
       id: c.id,
       symbol: c.symbol.toLowerCase(),
       name: c.name,
@@ -130,25 +152,24 @@ function marketRoutes(app) {
     const { id, days = 30 } = request.query
     if (!id) return reply.status(400).send({ error: 'id requis' })
 
-    // Try CoinGecko first (works sometimes), fallback to CoinPaprika
-    const paprikaId = geckoToPaprikaId(id)
-    const now = new Date()
-    const start = new Date(now - days * 24 * 60 * 60 * 1000)
-    const startStr = start.toISOString().split('T')[0]
-    const endStr = now.toISOString().split('T')[0]
+    const sym = idToSymbol(id)
+    const limit = Math.min(Number(days), 365)
+
+    // Use hourly data for <= 7 days, daily for longer
+    const endpoint = limit <= 7 ? 'v2/histohour' : 'v2/histoday'
+    const dataLimit = limit <= 7 ? limit * 24 : limit
 
     const data = await cachedFetch(
-      `history:${paprikaId}:${days}`,
-      `${PAPRIKA_URL}/coins/${paprikaId}/ohlcv/historical?start=${startStr}&end=${endStr}`,
+      `history:${sym}:${days}`,
+      `${CRYPTOCOMPARE_URL}/${endpoint}?fsym=${sym}&tsym=USD&limit=${dataLimit}`,
       300_000,
     )
 
-    if (!data || !Array.isArray(data)) {
+    if (!data?.Data?.Data) {
       return reply.status(502).send({ error: 'Erreur API' })
     }
 
-    // Return in CoinGecko format for compatibility
-    const prices = data.map(d => [new Date(d.time_open).getTime(), d.close])
+    const prices = data.Data.Data.map(d => [d.time * 1000, d.close])
     return reply.send({ prices })
   })
 }
